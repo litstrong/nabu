@@ -11,6 +11,9 @@ src-tauri/target/
 .DS_Store
 **/.DS_Store
 
+# Local build scripts (contain credentials)
+build-signed.sh
+
 # Editor
 .vscode/
 .idea/
