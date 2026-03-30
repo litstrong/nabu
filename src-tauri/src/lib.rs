@@ -84,11 +84,34 @@ fn list_vault_files(vault_path: String) -> Result<Vec<NoteFile>, String> {
     Ok(files)
 }
 
+#[tauri::command]
+async fn ask_ollama(model: String, prompt: String) -> Result<String, String> {
+    let body = serde_json::json!({
+        "model": model,
+        "prompt": prompt,
+        "stream": false
+    });
+    let res = reqwest::Client::new()
+        .post("http://localhost:11434/api/generate")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Ollama unreachable: {e}"))?;
+    let json: serde_json::Value = res
+        .json()
+        .await
+        .map_err(|e| format!("Parse error: {e}"))?;
+    json["response"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| format!("Unexpected response: {json}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![list_vault_files])
+        .invoke_handler(tauri::generate_handler![list_vault_files, ask_ollama])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

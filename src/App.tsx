@@ -23,6 +23,30 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [scanned, setScanned] = useState(false);
 
+  const [ollamaModel, setOllamaModel] = useState("llama3.2");
+  const [ollamaPrompt, setOllamaPrompt] = useState("");
+  const [ollamaReply, setOllamaReply] = useState<string | null>(null);
+  const [ollamaError, setOllamaError] = useState<string | null>(null);
+  const [ollamaLoading, setOllamaLoading] = useState(false);
+
+  const askOllama = async () => {
+    if (!ollamaPrompt.trim()) return;
+    setOllamaLoading(true);
+    setOllamaReply(null);
+    setOllamaError(null);
+    try {
+      const reply = await invoke<string>("ask_ollama", {
+        model: ollamaModel,
+        prompt: ollamaPrompt,
+      });
+      setOllamaReply(reply);
+    } catch (e) {
+      setOllamaError(String(e));
+    } finally {
+      setOllamaLoading(false);
+    }
+  };
+
   const selectFolder = async () => {
     const selected = await open({
       directory: true,
@@ -151,6 +175,45 @@ function App() {
             Enter a vault path and click Scan
           </div>
         )}
+
+        {/* Ollama */}
+        <div className="mt-8 pt-6 border-t border-gray-800">
+          <h2 className="text-sm font-medium text-gray-300 mb-3">Ask Ollama</h2>
+          <div className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={ollamaModel}
+              onChange={(e) => setOllamaModel(e.target.value)}
+              placeholder="model"
+              className="w-32 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            />
+            <input
+              type="text"
+              value={ollamaPrompt}
+              onChange={(e) => setOllamaPrompt(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && askOllama()}
+              placeholder="Ask anything…"
+              className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            />
+            <button
+              onClick={askOllama}
+              disabled={ollamaLoading}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white transition-colors whitespace-nowrap"
+            >
+              {ollamaLoading ? "Thinking…" : "Ask"}
+            </button>
+          </div>
+          {ollamaError && (
+            <div className="px-4 py-3 bg-red-950/50 border border-red-800/60 rounded-lg text-sm text-red-300">
+              {ollamaError}
+            </div>
+          )}
+          {ollamaReply && (
+            <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-gray-200 whitespace-pre-wrap">
+              {ollamaReply}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
